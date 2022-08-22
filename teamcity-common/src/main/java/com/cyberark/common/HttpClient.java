@@ -66,7 +66,7 @@ public class HttpClient {
             URL url = new URL(urlString);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
 
-            if (certificateContent != null) {
+            if (certificateContent != null && !certificateContent.trim().isEmpty()) {
                 conn.setSSLSocketFactory(getSSLSocketFactory(certificateContent));
             }
 
