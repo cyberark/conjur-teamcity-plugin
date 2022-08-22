@@ -34,8 +34,7 @@ public class ConjurConnectionParameters {
         this.account = parameters.get(agentParameterPrefix + conjurKeys.getAccount());
         this.certFile = parameters.get(agentParameterPrefix + conjurKeys.getCertFile());
         this.failOnError = parameters.get(agentParameterPrefix + conjurKeys.getFailOnError());
-        this.verboseLogging = parameters.get(agentParameterPrefix + conjurKeys.getVerboseLogging()) ;
-
+        this.verboseLogging = parameters.get(agentParameterPrefix + conjurKeys.getVerboseLogging());
     }
 
     public Map<String, String> getAgentSharedParameters() throws MissingMandatoryParameterException {
