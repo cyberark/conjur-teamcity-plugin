@@ -4,19 +4,21 @@ import com.cyberark.common.*;
 import com.cyberark.common.exceptions.ConjurApiAuthenticateException;
 import com.cyberark.common.exceptions.MissingMandatoryParameterException;
 import jetbrains.buildServer.BuildProblemData;
-import jetbrains.buildServer.agent.*;
+import jetbrains.buildServer.agent.AgentLifeCycleAdapter;
+import jetbrains.buildServer.agent.AgentLifeCycleListener;
+import jetbrains.buildServer.agent.AgentRunningBuild;
+import jetbrains.buildServer.agent.BuildProgressLogger;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ConjurBuildFeature extends AgentLifeCycleAdapter {
+public class ConjurEnvParameterReplacer extends AgentLifeCycleAdapter {
     public EventDispatcher<AgentLifeCycleListener> dispatcher;
     public SSLTrustStoreProvider trustStoreProvider;
 
-    public ConjurBuildFeature(EventDispatcher<AgentLifeCycleListener> dispatcher, SSLTrustStoreProvider trustStoreProvider) {
+    public ConjurEnvParameterReplacer(EventDispatcher<AgentLifeCycleListener> dispatcher, SSLTrustStoreProvider trustStoreProvider) {
         this.dispatcher = dispatcher;
         this.trustStoreProvider = trustStoreProvider;
         this.dispatcher.addListener(this);
@@ -142,7 +144,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
         // TODO: Currently this is only going to set the conjur parameter as an environment variables
         //   this may be undesirable for users of this plugin when they are trying to set `system` or `config` parameters
         for (Map.Entry<String, String> kv : conjurVariables.entrySet()) {
-            String envVar = kv.getKey().substring(4, kv.getKey().length());
+            String envVar = kv.getKey().substring(4); // the '4' means after the "env." prefix
             logger.Verbose(String.format("Setting secret '%s' with id '%s'", envVar, kv.getKey()));
             runningBuild.addSharedEnvironmentVariable(envVar, kv.getValue());
             runningBuild.getPasswordReplacer().addPassword(kv.getValue());
