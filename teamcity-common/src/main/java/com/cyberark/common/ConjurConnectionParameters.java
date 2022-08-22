@@ -1,7 +1,6 @@
 package com.cyberark.common;
 
 import com.cyberark.common.exceptions.MissingMandatoryParameterException;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.util.HashMap;
 import java.util.Map;
