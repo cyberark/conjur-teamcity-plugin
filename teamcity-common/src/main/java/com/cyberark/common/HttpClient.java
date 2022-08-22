@@ -1,4 +1,5 @@
 package com.cyberark.common;
+
 import java.io.*;
 
 import javax.net.ssl.*;
@@ -24,20 +25,20 @@ public class HttpClient {
         return new ByteArrayInputStream(input.getBytes());
     }
 
-    public static SSLSocketFactory getSSLSocketFactory(String certificateContent) throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException  {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Certificate cert = cf.generateCertificate(getInputStreamFromString(certificateContent));
+    public static SSLSocketFactory getSSLSocketFactory(String certificateContent) throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        Certificate cert = cf.generateCertificate(getInputStreamFromString(certificateContent));
 
-            final KeyStore ks = KeyStore.getInstance("JKS");
-            ks.load(null);
-            ks.setCertificateEntry("conjurTlsCaPath", cert);
-            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-            tmf.init(ks);
+        final KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(null);
+        ks.setCertificateEntry("conjurTlsCaPath", cert);
+        final TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+        tmf.init(ks);
 
-            SSLContext conjurSSLContext = SSLContext.getInstance("TLS");
-            conjurSSLContext.init(null, tmf.getTrustManagers(), null);
+        SSLContext conjurSSLContext = SSLContext.getInstance("TLS");
+        conjurSSLContext.init(null, tmf.getTrustManagers(), null);
 
-            return conjurSSLContext.getSocketFactory();
+        return conjurSSLContext.getSocketFactory();
     }
 
 
@@ -74,7 +75,7 @@ public class HttpClient {
             conn.setRequestProperty("Authorization", authHeader);
 
             // java doesn't allow some http verbs so you have to make the method POST and then create an override property
-            if(!method.equals("GET") && !method.equals("POST") && !method.equals("DELETE") && !method.equals("PUT")) {
+            if (!method.equals("GET") && !method.equals("POST") && !method.equals("DELETE") && !method.equals("PUT")) {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("X-HTTP-Method-Override", method);
             } else {
@@ -82,7 +83,7 @@ public class HttpClient {
             }
 
             // Do not write body to request if body is empty or null or method is GET
-            if(body != null && !method.equals("GET") && !body.equals("")) {
+            if (body != null && !method.equals("GET") && !body.equals("")) {
                 OutputStream os = conn.getOutputStream();
                 os.write(body.getBytes());
                 os.flush();
