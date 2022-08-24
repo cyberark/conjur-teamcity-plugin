@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 
-
 import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
@@ -32,7 +31,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             return null;
         }
 
-        // If more than on connection was found return error
+        // If more than one connection was found return error
         if (connections.size() > 1 ) {
             throw new MultipleConnectionsReturnedException("Only one CyberArk Conjur Connection should be configured for this project.");
         }
@@ -70,7 +69,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             return;
         }
 
-        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeature.getParameters());
+        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
 
         try {
             for(Map.Entry<String, String> kv : conjurConfig.getAgentSharedParameters().entrySet()) {

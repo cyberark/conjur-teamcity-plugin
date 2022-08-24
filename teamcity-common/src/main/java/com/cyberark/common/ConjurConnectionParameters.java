@@ -14,45 +14,31 @@ public class ConjurConnectionParameters {
     private String failOnError;
     private String verboseLogging;
     private static final ConjurJspKey conjurKeys = new ConjurJspKey();
-
-    public ConjurConnectionParameters(Map<String, String> parameters) {
-        this.apiKey = parameters.get(conjurKeys.getApiKey());
-        this.applianceUrl = parameters.get(conjurKeys.getApplianceUrl());
-        this.authnLogin = parameters.get(conjurKeys.getAuthnLogin());
-        this.account = parameters.get(conjurKeys.getAccount());
-        this.certFile = parameters.get(conjurKeys.getCertFile());
-        this.failOnError = parameters.get(conjurKeys.getFailOnError());
-        this.verboseLogging = parameters.get(conjurKeys.getVerboseLogging()) ;
-    }
+    private static final String agentParameterPrefix = "teamcity.conjur.";
 
     public ConjurConnectionParameters(Map<String, String> parameters, boolean agentSide) {
-        String agentParameterPrefix = getAgentParameterPrefix();
-        this.apiKey = parameters.get(agentParameterPrefix + conjurKeys.getApiKey());
-        this.applianceUrl = parameters.get(agentParameterPrefix + conjurKeys.getApplianceUrl());
-        this.authnLogin = parameters.get(agentParameterPrefix + conjurKeys.getAuthnLogin());
-        this.account = parameters.get(agentParameterPrefix + conjurKeys.getAccount());
-        this.certFile = parameters.get(agentParameterPrefix + conjurKeys.getCertFile());
-        this.failOnError = parameters.get(agentParameterPrefix + conjurKeys.getFailOnError());
-        this.verboseLogging = parameters.get(agentParameterPrefix + conjurKeys.getVerboseLogging());
+        String prefix = agentSide ? agentParameterPrefix : "";
+        this.apiKey = parameters.get(prefix + conjurKeys.getApiKey());
+        this.applianceUrl = parameters.get(prefix + conjurKeys.getApplianceUrl());
+        this.authnLogin = parameters.get(prefix + conjurKeys.getAuthnLogin());
+        this.account = parameters.get(prefix + conjurKeys.getAccount());
+        this.certFile = parameters.get(prefix + conjurKeys.getCertFile());
+        this.failOnError = parameters.get(prefix + conjurKeys.getFailOnError());
+        this.verboseLogging = parameters.get(prefix + conjurKeys.getVerboseLogging());
     }
 
     public Map<String, String> getAgentSharedParameters() throws MissingMandatoryParameterException {
         HashMap<String, String> sharedParameters = new HashMap<String, String>();
-        String prefix = getAgentParameterPrefix();
 
-        sharedParameters.put(prefix + conjurKeys.getAccount(), this.getAccount());
-        sharedParameters.put(prefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
-        sharedParameters.put(prefix + conjurKeys.getAuthnLogin(), this.getAuthnLogin());
-        sharedParameters.put(prefix + conjurKeys.getApiKey(), this.getApiKey()); // TODO !!! this must be added as a password-type param instead, or must not be added at all
-        sharedParameters.put(prefix + conjurKeys.getCertFile(), this.getCertFile());
-        sharedParameters.put(prefix + conjurKeys.getFailOnError(), String.valueOf(this.getFailOnError()));
-        sharedParameters.put(prefix + conjurKeys.getVerboseLogging(), String.valueOf(this.getVerboseLogging()));
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getAccount(), this.getAccount());
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getAuthnLogin(), this.getAuthnLogin());
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getApiKey(), this.getApiKey()); // TODO !!! this must be added as a password-type param instead, or must not be added at all
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getCertFile(), this.getCertFile());
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getFailOnError(), String.valueOf(this.getFailOnError()));
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getVerboseLogging(), String.valueOf(this.getVerboseLogging()));
 
         return sharedParameters;
-    }
-
-    public static String getAgentParameterPrefix() {
-        return "teamcity.conjur.";
     }
 
     @Override

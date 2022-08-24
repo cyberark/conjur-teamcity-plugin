@@ -30,7 +30,6 @@ public class ConjurPropertiesProcessor implements PropertiesProcessor {
                     "URL should start with 'https://' or 'http://'"));
         }
 
-
         // Validate Account
         String account = properties.get(conjurKeys.getAccount());
         if (isEmptyOrNull(account)) {
