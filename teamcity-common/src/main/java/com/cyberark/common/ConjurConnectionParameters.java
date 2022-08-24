@@ -43,7 +43,7 @@ public class ConjurConnectionParameters {
         sharedParameters.put(prefix + conjurKeys.getAccount(), this.getAccount());
         sharedParameters.put(prefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
         sharedParameters.put(prefix + conjurKeys.getAuthnLogin(), this.getAuthnLogin());
-        sharedParameters.put(prefix + conjurKeys.getApiKey(), this.getApiKey());
+        sharedParameters.put(prefix + conjurKeys.getApiKey(), this.getApiKey()); // TODO !!! this must be added as a password-type param instead, or must not be added at all
         sharedParameters.put(prefix + conjurKeys.getCertFile(), this.getCertFile());
         sharedParameters.put(prefix + conjurKeys.getFailOnError(), String.valueOf(this.getFailOnError()));
         sharedParameters.put(prefix + conjurKeys.getVerboseLogging(), String.valueOf(this.getVerboseLogging()));

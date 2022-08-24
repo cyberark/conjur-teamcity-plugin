@@ -1,30 +1,21 @@
 package com.cyberark.server;
 
-import com.cyberark.common.exceptions.ConjurApiAuthenticateException;
 import com.cyberark.common.exceptions.MissingMandatoryParameterException;
 import com.cyberark.common.exceptions.MultipleConnectionsReturnedException;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.util.*;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+
 
 import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
 
-    // This method will return one SProjectFeatureDescriptior that represents the Cyberark Conjur Connection
+    // This method will return one SProjectFeatureDescriptor that represents the CyberArk Conjur Connection
     //   provided in the project Connections. This method will return null if no Connection can be found and will throw
     //   a MultipleConnectionsReturnedException if more than one connection was found.
     private SProjectFeatureDescriptor getConnectionType(SProject project, String providerType) throws MultipleConnectionsReturnedException {
@@ -59,27 +50,27 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
 
         SBuildType buildType = build.getBuildType();
         if (buildType == null) {
-            // It is possible of build type to be null, if this is the case lets return and not retrieve conjur secrets
+            // It is possible of build type to be null, if this is the case let's return and not retrieve conjur secrets
             return;
         }
 
         SProject project = buildType.getProject();
-        SProjectFeatureDescriptor connectionFeatures = null;
+        SProjectFeatureDescriptor connectionFeature = null;
 
         try {
-            connectionFeatures = getConnectionType(project, ConjurSettings.getFeatureType());
+            connectionFeature = getConnectionType(project, ConjurSettings.getFeatureType());
         } catch (MultipleConnectionsReturnedException e) {
             BuildProblemData buildProblem = createBuildProblem(build, String.format("ERROR: %s", e.getMessage()));
             build.addBuildProblem(buildProblem);
         }
         
-        if (connectionFeatures == null) {
+        if (connectionFeature == null) {
             // If connection feature cannot be found (no connection has been configured on this project)
             // then return and do not perform conjur secret retrieval actions
             return;
         }
 
-        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
+        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeature.getParameters());
 
         try {
             for(Map.Entry<String, String> kv : conjurConfig.getAgentSharedParameters().entrySet()) {
@@ -88,7 +79,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         } catch (MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build,
                     String.format("ERROR: Setting agent's shared parameters. %s. %s",
-                            e.getMessage(), conjurConfig.toString()));
+                            e.getMessage(), conjurConfig));
             build.addBuildProblem(buildProblem);
         }
     }
