@@ -7,4 +7,5 @@
        <bean id="conjurParametersProvider" class="com.cyberark.server.ConjurParametersProvider"/>
        <bean id="conjurProjectConnection" class="com.cyberark.server.ConjurProjectConnectionProvider"/>
        <bean id="conjurBuildStartContextProcessor" class="com.cyberark.server.ConjurBuildStartContextProcessor"/>
+	   <bean id="vaultOAuthTestConnectionController" class="com.cyberark.server.ConjurTestConnectionController"/>
 </beans>
