@@ -141,4 +141,11 @@ public class ConjurConnectionParameters {
     public boolean getVerboseLogging() {
         return isTrue(this.verboseLogging);
     }
+
+	public boolean isNotDefined(){
+		return this.apiKey==null && this.authnLogin==null
+				&& this.account==null && this.applianceUrl==null
+				&& this.failOnError==null && this.certFile==null
+				&& this.verboseLogging==null;
+	}
 }

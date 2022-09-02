@@ -62,7 +62,10 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
         BuildProgressLogger buildLogger = runningBuild.getBuildLogger();
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(runningBuild.getSharedConfigParameters(), true);
         LogUtil logger = new LogUtil(buildLogger, conjurConfig.getVerboseLogging());
-
+		if(conjurConfig.isNotDefined()){
+			logger.Verbose("No Conjur Connection Parameters defined. Build is proceeding ...");
+			return;
+		}
         ConjurConfig config = null;
         try {
 
