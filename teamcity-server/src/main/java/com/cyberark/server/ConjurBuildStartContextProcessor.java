@@ -69,16 +69,16 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             return;
         }
 
-        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
+        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
 
         try {
-            for(Map.Entry<String, String> kv : conjurConfig.getAgentSharedParameters().entrySet()) {
+            for(Map.Entry<String, String> kv : conjurConnParams.getAgentSharedParameters().entrySet()) {
                 context.addSharedParameter(kv.getKey(), kv.getValue());
             }
         } catch (MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build,
                     String.format("ERROR: Setting agent's shared parameters. %s. %s",
-                            e.getMessage(), conjurConfig));
+                            e.getMessage(), conjurConnParams));
             build.addBuildProblem(buildProblem);
         }
     }
