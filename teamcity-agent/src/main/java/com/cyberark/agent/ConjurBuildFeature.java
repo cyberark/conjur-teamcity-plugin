@@ -22,25 +22,25 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
         this.dispatcher.addListener(this);
     }
 
-    // This method will turn a map of SOMETHING = %conjur:some/secret% into
-    // SOMETHING = some/secret
-    // input == {
-    //   "env.SECRET": "%conjur:super/secret%",
-    //   "env.DB_PASS": "%conjur:db/mysql/username%",
-    //   "TEAMCITY_BUILD": "22"
-    // }
-    //
+    // This method will turn a map of SOMETHING = %conjur:some/secret% into SOMETHING = some/secret
     // All non-conjur variables should not be returned
     // Also the %conjur: and % should be removed from the value
     // The key should remain the same
+    //
+    // Example:
+    // input == {
+    //   "env.SECRET":  "%conjur:super/secret%",
+    //   "env.DB_PASS": "%conjur:db/mysql/username%",
+    //   "TEAMCITY_BUILD": "22"
+    // }
     // output == {
-    //   "env.SECRET": "super/secret",
+    //   "env.SECRET":  "super/secret",
     //   "env.DB_PASS": "db/mysql/username"
     // }
     private Map<String, String> getVariableIdsFromBuildParameters(Map<String, String> parameters) {
         Map<String, String> variableIds = new HashMap<>();
 
-        for (Map.Entry<String, String> kv : parameters.entrySet() ) {
+        for (Map.Entry<String, String> kv : parameters.entrySet()) {
             String variableIdPrefix = "%conjur:";
             String variableIdSuffix = "%";
 
@@ -48,7 +48,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
                 // This value represents that this parameter needs to be replaced
                 String id = kv.getValue().trim();
                 id = id.substring(variableIdPrefix.length());
-                id = id.substring(0, id.length()-variableIdSuffix.length());
+                id = id.substring(0, id.length() - variableIdSuffix.length());
 
                 variableIds.put(kv.getKey(), id);
             }
@@ -65,7 +65,6 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
 
         ConjurConfig config = null;
         try {
-
             config = new ConjurConfig(
                     conjurConfig.getApplianceUrl(),
                     conjurConfig.getAccount(),
@@ -97,11 +96,11 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
             client.authenticate();
 
             // iterate over each variable that has been found
-            for(Map.Entry<String, String> kv : conjurVariables.entrySet()) {
+            for (Map.Entry<String, String> kv : conjurVariables.entrySet()) {
                 logger.Verbose(String.format("Attempting to retrieve secret '%s' with id '%s'", kv.getKey(), kv.getValue()));
                 HttpResponse response = client.getSecret(kv.getValue());
                 if (response.statusCode != 200 && conjurConfig.getFailOnError()) {
-                    String message =  String.format("ERROR: Retrieving secret '%s' from conjur. Received status code '%d'",
+                    String message = String.format("ERROR: Retrieving secret '%s' from conjur. Received status code '%d'",
                             kv.getValue(), response.statusCode);
                     buildLogger.logBuildProblem(
                             BuildProblemData.createBuildProblem(
@@ -128,12 +127,11 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
                     BuildProblemData.createBuildProblem(
                             "ConjurConnection", "ConjurConnection", message));
             runningBuild.stopBuild(message);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             if (!conjurConfig.getFailOnError()) {
                 return;
             }
-            String message =  String.format("ERROR: Generic error returned when establishing connection to conjur. %s", e.getMessage());
+            String message = String.format("ERROR: Generic error returned when establishing connection to conjur. %s", e.getMessage());
 
             buildLogger.logBuildProblem(
                     BuildProblemData.createBuildProblem(
@@ -143,8 +141,8 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
 
         // TODO: Currently this is only going to set the conjur parameter as an environment variables
         //   this may be undesirable for users of this plugin when they are trying to set `system` or `config` parameters
-        for(Map.Entry<String, String> kv : conjurVariables.entrySet()) {
-            String  envVar = kv.getKey().substring(4, kv.getKey().length());
+        for (Map.Entry<String, String> kv : conjurVariables.entrySet()) {
+            String envVar = kv.getKey().substring(4, kv.getKey().length());
             logger.Verbose(String.format("Setting secret '%s' with id '%s'", envVar, kv.getKey()));
             runningBuild.addSharedEnvironmentVariable(envVar, kv.getValue());
             runningBuild.getPasswordReplacer().addPassword(kv.getValue());
