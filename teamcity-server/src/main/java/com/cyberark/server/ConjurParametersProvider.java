@@ -21,7 +21,7 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
 
         while(it.hasNext()) {
             SProjectFeatureDescriptor desc = it.next();
-            // TODO: "Connection" probably should not be hardcoded. Also this connection is different in the hashi implemention
+            // TODO: "Connection" probably should not be hardcoded. Also this connection is different in the hashi implementation
             if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals(ConjurSettings.getFeatureType())) {
                 return true;
             }
@@ -46,7 +46,7 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
 
         while(it.hasNext()) {
             SProjectFeatureDescriptor desc = it.next();
-            // TODO: "Connection" should probably not be hardedcoded. Also this connection is different in the hashi implemention
+            // TODO: "Connection" should probably not be hardcoded. Also this connection is different in the hashi implementation
             if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals(ConjurSettings.getFeatureType())) {
                 connectionFeatures = desc;
                 break;
@@ -56,11 +56,6 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
         if (connectionFeatures == null) {
             return Collections.emptyList();
 		}
-
-        Map<String, String> conjurFeatures = connectionFeatures.getParameters();
-        Map<String, String> parameters = build.getBuildOwnParameters();
-
-        // exposed.add("SUPER_SECRET");
 
         return exposed;
     }

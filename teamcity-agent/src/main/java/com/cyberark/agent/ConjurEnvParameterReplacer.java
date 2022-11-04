@@ -4,19 +4,21 @@ import com.cyberark.common.*;
 import com.cyberark.common.exceptions.ConjurApiAuthenticateException;
 import com.cyberark.common.exceptions.MissingMandatoryParameterException;
 import jetbrains.buildServer.BuildProblemData;
-import jetbrains.buildServer.agent.*;
+import jetbrains.buildServer.agent.AgentLifeCycleAdapter;
+import jetbrains.buildServer.agent.AgentLifeCycleListener;
+import jetbrains.buildServer.agent.AgentRunningBuild;
+import jetbrains.buildServer.agent.BuildProgressLogger;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ConjurBuildFeature extends AgentLifeCycleAdapter {
+public class ConjurEnvParameterReplacer extends AgentLifeCycleAdapter {
     public EventDispatcher<AgentLifeCycleListener> dispatcher;
     public SSLTrustStoreProvider trustStoreProvider;
 
-    public ConjurBuildFeature(EventDispatcher<AgentLifeCycleListener> dispatcher, SSLTrustStoreProvider trustStoreProvider) {
+    public ConjurEnvParameterReplacer(EventDispatcher<AgentLifeCycleListener> dispatcher, SSLTrustStoreProvider trustStoreProvider) {
         this.dispatcher = dispatcher;
         this.trustStoreProvider = trustStoreProvider;
         this.dispatcher.addListener(this);
@@ -60,25 +62,9 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
     @Override
     public void buildStarted(AgentRunningBuild runningBuild) {
         BuildProgressLogger buildLogger = runningBuild.getBuildLogger();
-        ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(runningBuild.getSharedConfigParameters(), true);
-        LogUtil logger = new LogUtil(buildLogger, conjurConfig.getVerboseLogging());
 
-        ConjurConfig config = null;
-        try {
-            config = new ConjurConfig(
-                    conjurConfig.getApplianceUrl(),
-                    conjurConfig.getAccount(),
-                    conjurConfig.getAuthnLogin(),
-                    conjurConfig.getApiKey(),
-                    null,
-                    conjurConfig.getCertFile());
-        } catch (MissingMandatoryParameterException e) {
-            String message = String.format("ERROR: Retrieving conjur agent's shared parameters. %s", e.getMessage());
-            buildLogger.logBuildProblem(
-                    BuildProblemData.createBuildProblem(
-                            "ConjurConnection", "ConjurConnection", message));
-            runningBuild.stopBuild(message);
-        }
+        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(runningBuild.getSharedConfigParameters(), true);
+        LogUtil logger = new LogUtil(buildLogger, conjurConnParams.getVerboseLogging());
 
         Map<String, String> buildParams = runningBuild.getSharedBuildParameters().getAllParameters();
         Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
@@ -86,8 +72,25 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
         if (conjurVariables.size() == 0) {
             logger.Verbose("No conjur variables were found within the shared build parameters.");
             // No conjur variables are present in the build parameters, if this is the case lets not attempt to
-            // authenticate and just return
+            // neither read the connection parameters nor authenticate and just return
             return;
+        }
+
+        ConjurConfig config = null;
+        try {
+            config = new ConjurConfig(
+                    conjurConnParams.getApplianceUrl(),
+                    conjurConnParams.getAccount(),
+                    conjurConnParams.getAuthnLogin(),
+                    conjurConnParams.getApiKey(),
+                    null,
+                    conjurConnParams.getCertFile());
+        } catch (MissingMandatoryParameterException e) {
+            String message = String.format("ERROR: Retrieving conjur agent's shared parameters. %s", e.getMessage());
+            buildLogger.logBuildProblem(
+                    BuildProblemData.createBuildProblem(
+                            "ConjurConnection", "ConjurConnection", message));
+            runningBuild.stopBuild(message);
         }
 
         ConjurApi client = new ConjurApi(config);
@@ -99,7 +102,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
             for (Map.Entry<String, String> kv : conjurVariables.entrySet()) {
                 logger.Verbose(String.format("Attempting to retrieve secret '%s' with id '%s'", kv.getKey(), kv.getValue()));
                 HttpResponse response = client.getSecret(kv.getValue());
-                if (response.statusCode != 200 && conjurConfig.getFailOnError()) {
+                if (response.statusCode != 200 && conjurConnParams.getFailOnError()) {
                     String message = String.format("ERROR: Retrieving secret '%s' from conjur. Received status code '%d'",
                             kv.getValue(), response.statusCode);
                     buildLogger.logBuildProblem(
@@ -112,7 +115,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
             }
 
         } catch (ConjurApiAuthenticateException e) {
-            if (!conjurConfig.getFailOnError()) {
+            if (!conjurConnParams.getFailOnError()) {
                 // Failed to authenticate but no fail on error, do not set running build parameters
                 return;
             }
@@ -128,7 +131,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
                             "ConjurConnection", "ConjurConnection", message));
             runningBuild.stopBuild(message);
         } catch (Exception e) {
-            if (!conjurConfig.getFailOnError()) {
+            if (!conjurConnParams.getFailOnError()) {
                 return;
             }
             String message = String.format("ERROR: Generic error returned when establishing connection to conjur. %s", e.getMessage());
@@ -142,7 +145,7 @@ public class ConjurBuildFeature extends AgentLifeCycleAdapter {
         // TODO: Currently this is only going to set the conjur parameter as an environment variables
         //   this may be undesirable for users of this plugin when they are trying to set `system` or `config` parameters
         for (Map.Entry<String, String> kv : conjurVariables.entrySet()) {
-            String envVar = kv.getKey().substring(4, kv.getKey().length());
+            String envVar = kv.getKey().substring(4); // the '4' means after the "env." prefix
             logger.Verbose(String.format("Setting secret '%s' with id '%s'", envVar, kv.getKey()));
             runningBuild.addSharedEnvironmentVariable(envVar, kv.getValue());
             runningBuild.getPasswordReplacer().addPassword(kv.getValue());
