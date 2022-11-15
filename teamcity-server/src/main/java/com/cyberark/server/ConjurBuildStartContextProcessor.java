@@ -14,11 +14,18 @@ import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
 
-    // This method will return one SProjectFeatureDescriptor that represents the CyberArk Conjur Connection
-    //   provided in the project Connections. This method will return null if no Connection can be found and will throw
-    //   a MultipleConnectionsReturnedException if more than one connection was found.
-    private SProjectFeatureDescriptor getConnectionType(SProject project, String providerType) throws MultipleConnectionsReturnedException {
-        List<SProjectFeatureDescriptor> connections = new ArrayList<SProjectFeatureDescriptor>();
+    // This method will params that represents the CyberArk Conjur Connection
+    //   provided in the build's parent project Connections. This method will return null if no Connection can be found
+    //   and will throw a MultipleConnectionsReturnedException if more than one connection was found.
+    //   The convention is to only accept one and consider more as a configuration error.
+    private ConjurConnectionParameters getConjurConnectionParams(SBuild build, String providerType) throws MultipleConnectionsReturnedException {
+        SBuildType buildType = build.getBuildType();
+        if (buildType == null) {
+            return null;
+        }
+
+        SProject project = buildType.getProject();
+        List<SProjectFeatureDescriptor> connections = new ArrayList<>();
         for (SProjectFeatureDescriptor desc : project.getAvailableFeaturesOfType(OAuthConstants.FEATURE_TYPE)) {
             String connectionType = desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM);
             if (connectionType.equals(providerType)) {
@@ -26,17 +33,15 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             }
         }
 
-        // If no connections were found return null
         if (connections.size() == 0) {
             return null;
         }
-
-        // If more than one connection was found return error
         if (connections.size() > 1 ) {
             throw new MultipleConnectionsReturnedException("Only one CyberArk Conjur Connection should be configured for this project.");
         }
 
-        return connections.get(0);
+        SProjectFeatureDescriptor connectionFeature = connections.get(0);
+        return new ConjurConnectionParameters(connectionFeature.getParameters(), false);
     }
 
     private BuildProblemData createBuildProblem(SBuild build, String message) {
@@ -47,38 +52,23 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     public void updateParameters(BuildStartContext context) {
         SRunningBuild build = context.getBuild();
 
-        SBuildType buildType = build.getBuildType();
-        if (buildType == null) {
-            // It is possible of build type to be null, if this is the case let's return and not retrieve conjur secrets
-            return;
-        }
-
-        SProject project = buildType.getProject();
-        SProjectFeatureDescriptor connectionFeature = null;
-
+        ConjurConnectionParameters conjurConnParams = null;
         try {
-            connectionFeature = getConnectionType(project, ConjurSettings.getFeatureType());
+            conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType());
         } catch (MultipleConnectionsReturnedException e) {
             BuildProblemData buildProblem = createBuildProblem(build, String.format("ERROR: %s", e.getMessage()));
             build.addBuildProblem(buildProblem);
         }
-        
-        if (connectionFeature == null) {
-            // If connection feature cannot be found (no connection has been configured on this project)
-            // then return and do not perform conjur secret retrieval actions
-            return;
-        }
-
-        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
 
         try {
-            for(Map.Entry<String, String> kv : conjurConnParams.getAgentSharedParameters().entrySet()) {
-                context.addSharedParameter(kv.getKey(), kv.getValue());
+            if (conjurConnParams != null) {
+                for (Map.Entry<String, String> kv : conjurConnParams.getAgentSharedParameters().entrySet()) {
+                    context.addSharedParameter(kv.getKey(), kv.getValue());
+                }
             }
         } catch (MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build,
-                    String.format("ERROR: Setting agent's shared parameters. %s. %s",
-                            e.getMessage(), conjurConnParams));
+                    String.format("ERROR: Setting agent's shared parameters. %s. %s", e.getMessage(), conjurConnParams));
             build.addBuildProblem(buildProblem);
         }
     }
