@@ -18,7 +18,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     //   provided in the build's parent project Connections. This method will return null if no Connection can be found
     //   and will throw a MultipleConnectionsReturnedException if more than one connection was found.
     //   The convention is to only accept one and consider more as a configuration error.
-    private Map<String, String> getConjurConnectionParams(SBuild build, String providerType)
+    private Map<String, String> getConjurConnectionParams(SBuild build, String providerType, boolean returnSecretParamsOnly)
             throws MultipleConnectionsReturnedException, MissingMandatoryParameterException {
         SBuildType buildType = build.getBuildType();
         if (buildType == null) {
@@ -43,7 +43,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
 
         SProjectFeatureDescriptor connectionFeature = connections.get(0);
         ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
-        return conjurConnParams.getAgentSharedParameters();
+        return conjurConnParams.getAgentSharedParameters(returnSecretParamsOnly);
     }
 
     private BuildProblemData createBuildProblem(SBuild build, String message) {
@@ -56,7 +56,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
 
         Map<String, String> conjurConnParams = null;
         try {
-            conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType());
+            conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType(), false);
         }
         catch (MultipleConnectionsReturnedException | MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build, String.format("ERROR: %s", e.getMessage()));

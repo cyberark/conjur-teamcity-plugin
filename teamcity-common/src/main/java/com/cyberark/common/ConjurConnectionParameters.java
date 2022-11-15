@@ -27,17 +27,18 @@ public class ConjurConnectionParameters {
         this.verboseLogging = parameters.get(prefix + conjurKeys.getVerboseLogging());
     }
 
-    public Map<String, String> getAgentSharedParameters() throws MissingMandatoryParameterException {
+    public Map<String, String> getAgentSharedParameters(boolean returnSecretParamsOnly) throws MissingMandatoryParameterException {
         HashMap<String, String> sharedParameters = new HashMap<>();
 
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getAccount(), this.getAccount());
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getAuthnLogin(), this.getAuthnLogin());
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getApiKey(), this.getApiKey()); // TODO !!! this must be added as a password-type param instead, or must not be added at all
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getCertFile(), this.getCertFile());
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getFailOnError(), String.valueOf(this.getFailOnError()));
-        sharedParameters.put(agentParameterPrefix + conjurKeys.getVerboseLogging(), String.valueOf(this.getVerboseLogging()));
-
+        sharedParameters.put(agentParameterPrefix + conjurKeys.getApiKey(), this.getApiKey());
+        if (!returnSecretParamsOnly) {
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getAccount(), this.getAccount());
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getAuthnLogin(), this.getAuthnLogin());
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getCertFile(), this.getCertFile());
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getFailOnError(), String.valueOf(this.getFailOnError()));
+            sharedParameters.put(agentParameterPrefix + conjurKeys.getVerboseLogging(), String.valueOf(this.getVerboseLogging()));
+        }
         return sharedParameters;
     }
 
