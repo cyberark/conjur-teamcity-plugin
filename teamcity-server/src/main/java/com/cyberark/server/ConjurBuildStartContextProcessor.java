@@ -18,7 +18,8 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     //   provided in the build's parent project Connections. This method will return null if no Connection can be found
     //   and will throw a MultipleConnectionsReturnedException if more than one connection was found.
     //   The convention is to only accept one and consider more as a configuration error.
-    private ConjurConnectionParameters getConjurConnectionParams(SBuild build, String providerType) throws MultipleConnectionsReturnedException {
+    private Map<String, String> getConjurConnectionParams(SBuild build, String providerType)
+            throws MultipleConnectionsReturnedException, MissingMandatoryParameterException {
         SBuildType buildType = build.getBuildType();
         if (buildType == null) {
             return null;
@@ -41,7 +42,8 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         }
 
         SProjectFeatureDescriptor connectionFeature = connections.get(0);
-        return new ConjurConnectionParameters(connectionFeature.getParameters(), false);
+        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
+        return conjurConnParams.getAgentSharedParameters();
     }
 
     private BuildProblemData createBuildProblem(SBuild build, String message) {
@@ -52,24 +54,19 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     public void updateParameters(BuildStartContext context) {
         SRunningBuild build = context.getBuild();
 
-        ConjurConnectionParameters conjurConnParams = null;
+        Map<String, String> conjurConnParams = null;
         try {
             conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType());
-        } catch (MultipleConnectionsReturnedException e) {
+        }
+        catch (MultipleConnectionsReturnedException | MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build, String.format("ERROR: %s", e.getMessage()));
             build.addBuildProblem(buildProblem);
         }
 
-        try {
-            if (conjurConnParams != null) {
-                for (Map.Entry<String, String> kv : conjurConnParams.getAgentSharedParameters().entrySet()) {
-                    context.addSharedParameter(kv.getKey(), kv.getValue());
-                }
+        if (conjurConnParams != null) {
+            for (Map.Entry<String, String> kv : conjurConnParams.entrySet()) {
+                context.addSharedParameter(kv.getKey(), kv.getValue());
             }
-        } catch (MissingMandatoryParameterException e) {
-            BuildProblemData buildProblem = createBuildProblem(build,
-                    String.format("ERROR: Setting agent's shared parameters. %s. %s", e.getMessage(), conjurConnParams));
-            build.addBuildProblem(buildProblem);
         }
     }
 }
