@@ -6,13 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ConjurConnectionParameters {
-    private String apiKey;
-    private String authnLogin;
-    private String applianceUrl;
-    private String account;
-    private String certFile;
-    private String failOnError;
-    private String verboseLogging;
+    private final String apiKey;
+    private final String authnLogin;
+    private final String applianceUrl;
+    private final String account;
+    private final String certFile;
+    private final String failOnError;
+    private final String verboseLogging;
     private static final ConjurJspKey conjurKeys = new ConjurJspKey();
     private static final String agentParameterPrefix = "teamcity.conjur.";
 
@@ -28,7 +28,7 @@ public class ConjurConnectionParameters {
     }
 
     public Map<String, String> getAgentSharedParameters() throws MissingMandatoryParameterException {
-        HashMap<String, String> sharedParameters = new HashMap<String, String>();
+        HashMap<String, String> sharedParameters = new HashMap<>();
 
         sharedParameters.put(agentParameterPrefix + conjurKeys.getAccount(), this.getAccount());
         sharedParameters.put(agentParameterPrefix + conjurKeys.getApplianceUrl(), this.getApplianceUrl());
@@ -52,41 +52,25 @@ public class ConjurConnectionParameters {
                 conjurKeys.getVerboseLogging(), this.verboseLogging);
     }
 
-    private boolean validateUrl(String url) {
-        if (url.startsWith("https://") || url.startsWith("http://")) {
-            return true;
-        }
-        return false;
-    }
-
-    private String trim(String input) {
+    private String trimMandatoryParameter(String input, String key) throws MissingMandatoryParameterException {
         if (input == null) {
-            return null;
+            throw new MissingMandatoryParameterException(String.format("Failed to retrieve mandatory parameter '%s'. This should not happen", key));
         }
         return input.trim();
     }
 
-    private String trimMandatoryParameter(String input, String key) throws MissingMandatoryParameterException {
-        input = trim(input);
-        if (input == null) {
-            throw new MissingMandatoryParameterException(String.format("Failed to retrieve mandatory parameter '%s'. This should not happen", key));
-        }
-        return input;
-    }
-
     private String trimOptionalParameter(String input) {
-        return trim(input);
+        if (input != null)
+            return input.trim();
+        else
+            return null;
     }
 
     private boolean isTrue(String str) {
         if (str == null) {
             return false;
         }
-        return str.trim().toLowerCase().equals("true");
-    }
-
-    public boolean isValidUrl() throws MissingMandatoryParameterException {
-        return this.validateUrl(this.getApplianceUrl());
+        return str.trim().equalsIgnoreCase("true");
     }
 
     public String getApplianceUrl() throws MissingMandatoryParameterException {
@@ -110,7 +94,7 @@ public class ConjurConnectionParameters {
         return trimMandatoryParameter(this.apiKey, conjurKeys.getApiKey());
     }
 
-    public String getCertFile(){
+    public String getCertFile() {
         String certContent = trimOptionalParameter(this.certFile);
         if (certContent == null) {
             certContent = "";
@@ -118,7 +102,7 @@ public class ConjurConnectionParameters {
         return certContent;
     }
 
-    public boolean getFailOnError(){
+    public boolean getFailOnError() {
         return isTrue(this.failOnError);
     }
 
