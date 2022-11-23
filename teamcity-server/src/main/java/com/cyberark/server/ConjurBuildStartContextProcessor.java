@@ -16,10 +16,10 @@ import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor, PasswordsProvider {
 
-    // This method will params that represents the CyberArk Conjur Connection
+    // This method will return params that represent the CyberArk Conjur Connection
     //   provided in the build's parent project Connections. This method will return null if no Connection can be found
     //   and will throw a MultipleConnectionsReturnedException if more than one connection was found.
-    //   The convention is to only accept one and consider more as a configuration error.
+    //   The convention is to only accept one connection, and to consider more connections as a (user's) configuration error.
     private Map<String, String> getConjurConnectionParams(SBuild build, String providerType, boolean returnSecretParamsOnly)
             throws MultipleConnectionsReturnedException, MissingMandatoryParameterException {
         SBuildType buildType = build.getBuildType();
@@ -71,7 +71,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         }
     }
 
-    // the purpose of this method is to mark a given param as password-type
+    // the purpose of this method is to mark designated sensitive param(s) as password-type
     @Override
     public Collection<Parameter> getPasswordParameters(SBuild build) {
         Map<String, String> conjurConnParams = null;
