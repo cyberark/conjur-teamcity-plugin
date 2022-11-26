@@ -25,6 +25,14 @@ To run unit tests execute the following:
 ```bash
 mvn test
 ```
+### Manual test scenarios
+
+Test setup: add and enable the Conjur TeamCity Plugin, create a project and an empty/dummy build inside
+* In a project that has no Conjur Connection defined:
+  * run the build - it must run the same way as if the Conjur TeamCity Plugin wasn't present/enabled
+* In a project that does have a Conjur Connection defined:
+  * run the build that has no Conjur-sourced parameter defined - the build must not create any Conjur connection (verify in verbose-level build log)
+  * run the build that has a Conjur-sourced parameter defined - the build must create the Conjur connection and must replace the parameter value with the one from Conjur (verify in verbose-level build log and in build parameters)
 
 ## Releases
 To create a new release in this project, follow the standard [release guidelines](https://github.com/cyberark/community/blob/master/Conjur/CONTRIBUTING.md#release-process).

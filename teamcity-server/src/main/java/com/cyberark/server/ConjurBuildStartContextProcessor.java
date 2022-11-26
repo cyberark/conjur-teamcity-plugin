@@ -5,20 +5,30 @@ import com.cyberark.common.exceptions.MultipleConnectionsReturnedException;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
+import jetbrains.buildServer.serverSide.parameters.types.PasswordsProvider;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 
 import com.cyberark.common.*;
 
-public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
+public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor, PasswordsProvider {
 
-    // This method will return one SProjectFeatureDescriptor that represents the CyberArk Conjur Connection
-    //   provided in the project Connections. This method will return null if no Connection can be found and will throw
-    //   a MultipleConnectionsReturnedException if more than one connection was found.
-    private SProjectFeatureDescriptor getConnectionType(SProject project, String providerType) throws MultipleConnectionsReturnedException {
-        List<SProjectFeatureDescriptor> connections = new ArrayList<SProjectFeatureDescriptor>();
+    // This method will return params that represent the CyberArk Conjur Connection
+    //   provided in the build's parent project Connections. This method will return null if no Connection can be found
+    //   and will throw a MultipleConnectionsReturnedException if more than one connection was found.
+    //   The convention is to only accept one connection, and to consider more connections as a (user's) configuration error.
+    private Map<String, String> getConjurConnectionParams(SBuild build, String providerType, boolean returnSecretParamsOnly)
+            throws MultipleConnectionsReturnedException, MissingMandatoryParameterException {
+        SBuildType buildType = build.getBuildType();
+        if (buildType == null) {
+            return null;
+        }
+
+        SProject project = buildType.getProject();
+        List<SProjectFeatureDescriptor> connections = new ArrayList<>();
         for (SProjectFeatureDescriptor desc : project.getAvailableFeaturesOfType(OAuthConstants.FEATURE_TYPE)) {
             String connectionType = desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM);
             if (connectionType.equals(providerType)) {
@@ -26,17 +36,16 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             }
         }
 
-        // If no connections were found return null
         if (connections.size() == 0) {
             return null;
         }
-
-        // If more than one connection was found return error
-        if (connections.size() > 1 ) {
+        if (connections.size() > 1) {
             throw new MultipleConnectionsReturnedException("Only one CyberArk Conjur Connection should be configured for this project.");
         }
 
-        return connections.get(0);
+        SProjectFeatureDescriptor connectionFeature = connections.get(0);
+        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
+        return conjurConnParams.getAgentSharedParameters(returnSecretParamsOnly);
     }
 
     private BuildProblemData createBuildProblem(SBuild build, String message) {
@@ -47,39 +56,37 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     public void updateParameters(BuildStartContext context) {
         SRunningBuild build = context.getBuild();
 
-        SBuildType buildType = build.getBuildType();
-        if (buildType == null) {
-            // It is possible of build type to be null, if this is the case let's return and not retrieve conjur secrets
-            return;
-        }
-
-        SProject project = buildType.getProject();
-        SProjectFeatureDescriptor connectionFeature = null;
-
+        Map<String, String> conjurConnParams = null;
         try {
-            connectionFeature = getConnectionType(project, ConjurSettings.getFeatureType());
-        } catch (MultipleConnectionsReturnedException e) {
+            conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType(), false);
+        } catch (MultipleConnectionsReturnedException | MissingMandatoryParameterException e) {
             BuildProblemData buildProblem = createBuildProblem(build, String.format("ERROR: %s", e.getMessage()));
             build.addBuildProblem(buildProblem);
         }
-        
-        if (connectionFeature == null) {
-            // If connection feature cannot be found (no connection has been configured on this project)
-            // then return and do not perform conjur secret retrieval actions
-            return;
-        }
 
-        ConjurConnectionParameters conjurConnParams = new ConjurConnectionParameters(connectionFeature.getParameters(), false);
-
-        try {
-            for(Map.Entry<String, String> kv : conjurConnParams.getAgentSharedParameters().entrySet()) {
+        if (conjurConnParams != null) {
+            for (Map.Entry<String, String> kv : conjurConnParams.entrySet()) {
                 context.addSharedParameter(kv.getKey(), kv.getValue());
             }
-        } catch (MissingMandatoryParameterException e) {
-            BuildProblemData buildProblem = createBuildProblem(build,
-                    String.format("ERROR: Setting agent's shared parameters. %s. %s",
-                            e.getMessage(), conjurConnParams));
-            build.addBuildProblem(buildProblem);
         }
+    }
+
+    // the purpose of this method is to mark designated sensitive param(s) as password-type
+    @Override
+    public Collection<Parameter> getPasswordParameters(SBuild build) {
+        Map<String, String> conjurConnParams = null;
+        try {
+            conjurConnParams = getConjurConnectionParams(build, ConjurSettings.getFeatureType(), true);
+        } catch (MultipleConnectionsReturnedException | MissingMandatoryParameterException e) {
+            // mute: all the build problems will/must have already been added in updateParameters() above
+        }
+
+        ArrayList<Parameter> pwdParams = new ArrayList<>();
+        if (conjurConnParams != null) {
+            for (Map.Entry<String, String> kv : conjurConnParams.entrySet()) {
+                pwdParams.add(new SimpleParameter(kv.getKey(), kv.getValue()));
+            }
+        }
+        return pwdParams;
     }
 }
