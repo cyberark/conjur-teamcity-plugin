@@ -10,15 +10,14 @@ For general contribution and community guidelines, please see the [community rep
 
 ## Development
 Tools required:
-- docker
-- docker-compose
-- jdk 8
-- mvn
-
+- Docker
+- Docker Compose
+- JDK 8
+- Maven
 
 Navigate into the `dev` directory and execute the following:
 - [Conjur installation](https://github.com/cyberark/conjur-quickstart/blob/master/test_workflow.sh)
-- Setup TeamCity: `docker-compose up -d`
+- Setup TeamCity: `docker compose up -d`
 
 ## Testing
 To run unit tests execute the following:
